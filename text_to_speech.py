@@ -28,6 +28,7 @@ import json
 import re
 import datetime
 
+from clock_functions import check_the_clock
 from aiy.board import Board, Led
 from cloudspeech_modified import CloudSpeechClient
 
@@ -61,7 +62,8 @@ def main():
 
     location = get_location()
 
-    logging.basicConfig(level=logging.DEBUG)
+    # logging.basicConfig(level=logging.DEBUG)
+    logging.basicConfig(level=logging.ERROR)
 
     parser = argparse.ArgumentParser(description='Assistant service example.')
     parser.add_argument('--language', default=locale_language())
@@ -71,6 +73,9 @@ def main():
     hints = get_hints(args.language)
     client = CloudSpeechClient()
     journal_entry = []
+
+    # check the time, and once it's ready, listen for sounds
+
     with Board() as board:
         while True:
             board.led.state = Led.OFF
