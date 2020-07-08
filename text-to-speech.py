@@ -1,4 +1,7 @@
 #!/usr/bin/env python3
+#
+# Adapted from Google's AIY Cloudspeech Demo
+#
 # Copyright 2017 Google Inc.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -14,7 +17,8 @@
 # limitations under the License.
 
 
-"""A demo of the Google CloudSpeech recognizer."""
+"""A demo of the Google CloudSpeech recognizer..."""
+"""...adapted to be a text to speech journaling app."""
 import argparse
 import locale
 import logging
