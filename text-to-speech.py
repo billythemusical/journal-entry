@@ -106,7 +106,7 @@ def main():
         # output.write(line + '\n')
         output.write(line + '\n')
 
-    output.close()
+    output.close() 
     exit()
 
 if __name__ == '__main__':
