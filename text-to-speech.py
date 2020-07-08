@@ -89,14 +89,15 @@ def main():
     logging.info('writing to journal');
 
     today = datetime.date.today()
-    date = "%d-%d-%d" % (today.month, today.day, today.year)
+    date_file = "%d-%d-%d" % (today.year, today.month, today.day)
+    date_heading = "%d-%d-%d" % (today.month, today.day, today.year)
     clock = datetime.datetime.now().time()
     now = "%d:%d:%d" % (clock.hour, clock.minute, clock.second)
 
-    timestamp = date + '_' + now
-    output = open('je_%s.txt' % timestamp, 'w')
+    timestamp = date_file + '_' + now
+    output = open('je%s.txt' % timestamp, 'w')
 
-    heading = date + '\n' + location + '\n\n\n'
+    heading = date_heading + '\n' + location + '\n\n'
     output.write(heading)
 
     wrapped_entry = textwrap.wrap('\n'.join(journal_entry), width=64);
@@ -106,7 +107,7 @@ def main():
         # output.write(line + '\n')
         output.write(line + '\n')
 
-    output.close() 
+    output.close()
     exit()
 
 if __name__ == '__main__':
