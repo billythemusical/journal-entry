@@ -18,32 +18,19 @@
 
 
 """A demo of the Google CloudSpeech recognizer..."""
-"""...adapted to be a text to speech journaling app."""
+"""...adapted to be a text-to-speech journaling app."""
 import argparse
 import locale
 import logging
 import textwrap
+import os
+import time
 import subprocess
-import json
-import re
 import datetime
-
-from clock_functions import check_the_clock
+from helper_functions import gen_paths, get_location
 from aiy.board import Board, Led
+from aiy.leds import Leds, Color, Pattern
 from cloudspeech_modified import CloudSpeechClient
-
-def get_location():
-    city_state = ""
-    try:
-        data = subprocess.check_output(["curl", "ipinfo.io"])
-        location = json.dumps(data.decode("utf-8"))
-        city = re.search(r"city\\\"\W\s\\\"([\w]+)", location).group(1)
-        state = re.search(r"region\\\"\W\s\\\"([\w]+)", location).group(1)
-        city_state = city + ", " + state
-        print("Near %s" % city_state)
-    except:
-        print("error getting location");
-    return city_state
 
 def get_hints(language_code):
     if language_code.startswith('en_'):
@@ -58,12 +45,12 @@ def locale_language():
     return language
 
 
-def main():
-
-    location = get_location()
-
+def record_journal_entry():
+    # turn light blue as we start up
+    leds = Leds()
+    logging.basicConfig(level=logging.INFO)
     # logging.basicConfig(level=logging.DEBUG)
-    logging.basicConfig(level=logging.ERROR)
+    # logging.basicConfig(level=logging.ERROR)
 
     parser = argparse.ArgumentParser(description='Assistant service example.')
     parser.add_argument('--language', default=locale_language())
@@ -72,52 +59,62 @@ def main():
     logging.info('Initializing for language %s...', args.language)
     hints = get_hints(args.language)
     client = CloudSpeechClient()
-    journal_entry = []
+    journal_entry = ""
 
     # check the time, and once it's ready, listen for sounds
-
+    # subprocess.Popen(["python3", "led_breathe.py", "-d", "10", "-br", "-c", "RED"]);
     with Board() as board:
         while True:
-            board.led.state = Led.OFF
-            board.led.state = Led.ON
+            leds.pattern = Pattern.breathe(500)
+            leds.update(Leds.rgb_pattern(Color.RED))
             logging.info('Please tell me about your day...')
             text = client.recognize(language_code=args.language,
                                     hint_phrases=hints,
-                                    punctuation=True)
+                                    punctuation=True,
+                                    )
             # client must return None when it gets a pause in speech
             if text is None:
                 continue
 
             logging.info('You said: "%s"' % text)
-            text = text.lower()
-            journal_entry.append(text)
+            # text = text.lower()
+            journal_entry += text + " "
 
-            if 'goodbye' in text:
+            # to add:
+            # if button is pressed
+
+            if 'goodbye' in text.lower():
                 break
 
-    logging.info('writing to journal');
+    leds.pattern = Pattern.breathe(500)
+    leds.update(Leds.rgb_pattern(Color.GREEN))
+    logging.info('writing to journal')
 
-    today = datetime.date.today()
-    date_file = "%d-%d-%d" % (today.year, today.month, today.day)
-    date_heading = "%d-%d-%d" % (today.month, today.day, today.year)
-    clock = datetime.datetime.now().time()
-    now = "%d:%d:%d" % (clock.hour, clock.minute, clock.second)
+    heading = ""
+    file_path = ""
 
-    timestamp = date_file + '_' + now
-    output = open('je%s.txt' % timestamp, 'w')
-
-    heading = date_heading + '\n' + location + '\n\n'
-    output.write(heading)
-
-    wrapped_entry = textwrap.wrap('\n'.join(journal_entry), width=64);
-    # print(wrapped_entry)
-
-    for line in wrapped_entry:
-        # output.write(line + '\n')
-        output.write(line + '\n')
-
+    try:
+        paths = gen_paths()
+        heading = paths["heading"]
+        file_path = paths["file_path"]
+    except:
+        print("There was an error setting the path. Saving dirty entry locally.")
+        date = str(datetime.datetime.now())
+        with open("je_error_dump_%s.txt" % date, 'w') as dump:
+            data = date + "\n\n\n" + journal_entry
+            dump.write(data)
+        board.led.state = Led.OFF
+        exit(0)
+    output = open(file_path, 'w')
+    # output.write(heading)
+    wrapped_entry = textwrap.fill(heading + journal_entry, width=70);
+    # wrapped_string = "\n".join(wrapped_entry)
+    output.write(wrapped_entry)
     output.close()
-    exit()
+    board.led.state = Led.OFF
+
+
+
 
 if __name__ == '__main__':
-    main()
+    record_journal_entry()
