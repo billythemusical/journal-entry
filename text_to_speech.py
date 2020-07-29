@@ -82,8 +82,10 @@ def record_journal_entry():
 
             if 'new line' in text.lower():
                 journal_entry.replace('new line', '\n\n    ')
-
-            if 'goodbye' in text.lower():
+            elif 'cancel cancel cancel' in text.lower():
+                board.led.state = Led.OFF
+                exit(0)
+            elif 'goodbye' in text.lower():
                 break
 
     leds.pattern = Pattern.breathe(500)
