@@ -80,8 +80,8 @@ def record_journal_entry():
             # text = text.lower()
             journal_entry += text + " "
 
-            # to add:
-            # if button is pressed
+            if 'new line' in text.lower():
+                journal_entry.replace('new line', '\n\n    ')
 
             if 'goodbye' in text.lower():
                 break
