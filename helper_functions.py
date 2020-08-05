@@ -13,7 +13,7 @@ def gen_paths():
     today = datetime.date.today()
     date_file = "%d-%d-%d" % (today.year, today.month, today.day)
     date_heading = "%d-%d-%d" % (today.month, today.day, today.year)
-    heading = date_heading + '\n' + location + '\n\n'
+    heading = date_heading + '\nnear ' + location + '\n\n'
 
     clock = datetime.datetime.now().time()
     hour_min_sec = "%d-%d-%d" % (clock.hour, clock.minute, clock.second)

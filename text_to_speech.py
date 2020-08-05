@@ -34,10 +34,12 @@ from cloudspeech_modified import CloudSpeechClient
 
 def get_hints(language_code):
     if language_code.startswith('en_'):
-        return ('turn on the light',
-                'turn off the light',
-                'blink the light',
-                'goodbye')
+        return ('goodbye',
+                'new line',
+                'Nell',
+                'Katherine',
+                'Prof G',
+                'VidCode')
     return None
 
 def locale_language():
@@ -65,9 +67,9 @@ def record_journal_entry():
     # subprocess.Popen(["python3", "led_breathe.py", "-d", "10", "-br", "-c", "RED"]);
     with Board() as board:
         while True:
-            leds.pattern = Pattern.breathe(500)
+            leds.pattern = Pattern.breathe(2000)
             leds.update(Leds.rgb_pattern(Color.RED))
-            logging.info('Please tell me about your day...')
+            print('>>> please tell me about your day 👂🏼')
             text = client.recognize(language_code=args.language,
                                     hint_phrases=hints,
                                     punctuation=True,
@@ -83,14 +85,14 @@ def record_journal_entry():
             if 'new line' in text.lower():
                 journal_entry.replace('new line', '\n\n    ')
             elif 'cancel cancel cancel' in text.lower():
-                board.led.state = Led.OFF
                 exit(0)
+                board.led.state = Led.OFF
             elif 'goodbye' in text.lower():
                 break
 
-    leds.pattern = Pattern.breathe(500)
+    leds.pattern = Pattern.breathe(1000)
     leds.update(Leds.rgb_pattern(Color.GREEN))
-    logging.info('writing to journal')
+    logging.info('>>> writing to journal 📓')
 
     heading = ""
     file_path = ""
@@ -100,7 +102,7 @@ def record_journal_entry():
         heading = paths["heading"]
         file_path = paths["file_path"]
     except:
-        print("There was an error setting the path. Saving dirty entry locally.")
+        print(">>> 🆘 there was an error setting the path...\n>>> saving dirty entry locally.")
         date = str(datetime.datetime.now())
         with open("je_error_dump_%s.txt" % date, 'w') as dump:
             data = date + "\n\n\n" + journal_entry
@@ -109,10 +111,11 @@ def record_journal_entry():
         exit(0)
     output = open(file_path, 'w')
     # output.write(heading)
-    wrapped_entry = textwrap.fill(heading + journal_entry, width=70);
+    wrapped_entry = textwrap.fill(heading + journal_entry, width=70, replace_whitespace=False);
     # wrapped_string = "\n".join(wrapped_entry)
     output.write(wrapped_entry)
     output.close()
+    print('>>> saving journal entry 📓')
     board.led.state = Led.OFF
 
 

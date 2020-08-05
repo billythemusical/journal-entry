@@ -14,21 +14,32 @@
 from aiy.board import Board, Led
 from aiy.leds import Leds, Color, Pattern
 import subprocess
+import time
 
+board = Board()
 leds = Leds()
 
+def journal():
+    # turn the LED off
+    board.led.state = Led.OFF
+    print('>>> launching journal 📓')
+    # launch the subprocess
+    subprocess.run(['python3', 'text_to_speech.py'])
+    exit(0)
+
 def main():
-    print('Waiting for button press, then we journal! (Ctrl-C for exit).')
-    with Board() as board:
-        while True:
-            leds.pattern = Pattern.breathe(500)
-            leds.update(Leds.rgb_pattern(Color.YELLOW))
-            board.button.wait_for_press()
-            # board.button.wait_for_release()
-            print('>>> launching journal')
-            board.led.state = Led.OFF
-            subprocess.run(['python3', 'text_to_speech.py'])
-            break
+    # callback to run when button is released
+    board.button.when_pressed = journal
+
+    print('waiting for press 👇🏽')
+
+    leds.pattern = Pattern.breathe(2000)
+    leds.update(Leds.rgb_pattern(Color.YELLOW))
+    # button waits for 60 seconds times 15 minutes
+    board.button.wait_for_press(60*15)
+    # if no press...
+    print('no press, exiting 👋🏽...')
+    board.led.state = Led.OFF
 
 
 if __name__ == '__main__':
