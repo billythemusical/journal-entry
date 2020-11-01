@@ -20,17 +20,24 @@
 """A demo of the Google CloudSpeech recognizer..."""
 """...adapted to be a text-to-speech journaling app."""
 import argparse
+import logging
 import locale
 import logging
 import textwrap
 import os
 import time
 import subprocess
-import datetime
-from helper_functions import gen_paths, get_location
+from datetime import datetime
+from helper_functions import gen_paths, get_location, collate
 from aiy.board import Board, Led
 from aiy.leds import Leds, Color, Pattern
 from cloudspeech_modified import CloudSpeechClient
+
+
+logging_path = '/home/pi/work-dir/journal-entry/misc/logs/text_to_speech.log'
+logging.basicConfig(filename=logging_path, level=logging.INFO)
+begin_log = '\n\n**************************\n' + str(datetime.now());
+logging.info(begin_log)
 
 def get_hints(language_code):
     if language_code.startswith('en_'):
@@ -39,7 +46,8 @@ def get_hints(language_code):
                 'Nell',
                 'Katherine',
                 'Prof G',
-                'VidCode')
+                'VidCode',
+                'ITP')
     return None
 
 def locale_language():
@@ -50,9 +58,6 @@ def locale_language():
 def record_journal_entry():
     # turn light blue as we start up
     leds = Leds()
-    logging.basicConfig(level=logging.INFO)
-    # logging.basicConfig(level=logging.DEBUG)
-    # logging.basicConfig(level=logging.ERROR)
 
     parser = argparse.ArgumentParser(description='Assistant service example.')
     parser.add_argument('--language', default=locale_language())
@@ -61,65 +66,70 @@ def record_journal_entry():
     logging.info('Initializing for language %s...', args.language)
     hints = get_hints(args.language)
     client = CloudSpeechClient()
-    journal_entry = ""
-
-    # check the time, and once it's ready, listen for sounds
-    # subprocess.Popen(["python3", "led_breathe.py", "-d", "10", "-br", "-c", "RED"]);
-    with Board() as board:
-        while True:
-            leds.pattern = Pattern.breathe(2000)
-            leds.update(Leds.rgb_pattern(Color.RED))
-            print('>>> please tell me about your day 👂🏼')
-            text = client.recognize(language_code=args.language,
-                                    hint_phrases=hints,
-                                    punctuation=True,
-                                    )
-            # client must return None when it gets a pause in speech
-            if text is None:
-                continue
-
-            logging.info('You said: "%s"' % text)
-            # text = text.lower()
-            journal_entry += text + " "
-
-            if 'new line' in text.lower():
-                journal_entry.replace('new line', '\n\n    ')
-            elif 'cancel cancel cancel' in text.lower():
-                exit(0)
-                board.led.state = Led.OFF
-            elif 'goodbye' in text.lower():
-                break
-
-    leds.pattern = Pattern.breathe(1000)
-    leds.update(Leds.rgb_pattern(Color.GREEN))
-    logging.info('>>> writing to journal 📓')
 
     heading = ""
     file_path = ""
-
     try:
         paths = gen_paths()
         heading = paths["heading"]
         file_path = paths["file_path"]
     except:
         print(">>> 🆘 there was an error setting the path...\n>>> saving dirty entry locally.")
-        date = str(datetime.datetime.now())
-        with open("je_error_dump_%s.txt" % date, 'w') as dump:
-            data = date + "\n\n\n" + journal_entry
-            dump.write(data)
-        board.led.state = Led.OFF
-        exit(0)
-    output = open(file_path, 'w')
-    # output.write(heading)
-    wrapped_entry = textwrap.fill(heading + journal_entry, width=70, replace_whitespace=False);
-    # wrapped_string = "\n".join(wrapped_entry)
-    output.write(wrapped_entry)
-    output.close()
-    print('>>> saving journal entry 📓')
+        logging.warning('Unable to get the location.  Using default paths.')
+        date = str(datetime.now())
+        heading = date + "\n\n\n"
+        file_path = os.getcwd()+"/je_error_dump_%s.txt" % date
+
+    with Board() as board:
+        with open(file_path, 'w') as dump:
+            dump.write(heading)
+            print('>>> please tell me about your day 👂🏼')
+            while True:
+                leds.pattern = Pattern.breathe(2000)
+                leds.update(Leds.rgb_pattern(Color.RED))
+                text = client.recognize(language_code=args.language,
+                                        hint_phrases=hints,
+                                        punctuation=True,
+                                        )
+                # client must return None when it gets a pause in speech
+                if text is None:
+                    continue
+
+                logging.info(' You said: "%s"' % text)
+                print("+ %s" % text)
+                dump.write(text + "  ")
+
+                if 'new line' in text.lower():
+                    dump.write('\n\n')
+                    logging.info('\n\n')
+                elif 'cancel cancel cancel' in text.lower():
+                    board.led.state = Led.OFF
+                    exit(0)
+                elif 'goodbye' in text.lower():
+                    break
+
+    leds.pattern = Pattern.breathe(1000)
+    leds.update(Leds.rgb_pattern(Color.GREEN))
+    logging.info('>>> wrapping and saving journal entry 📓')
+    # try:
+    #     with open(file_path) as file:
+    #         lines = file.readlines()
+    #         print("read the lines")
+    #         with open(file_path, 'w') as wrapper:
+    #             size = 70
+    #             for line in lines:
+    #                 print("+" + line)
+    #                 if len(line) > size:
+    #                     collated = collate(line, size)
+    #                     for short in collated:
+    #                         wrapper.write(short)
+    #                         wrapper.write('\n')
+    #                 else:
+    #                     writer.write(line)
+    # except:
+    #     logging.error('There was an error wrapping %s' % file_path)
+    time.sleep(3)
     board.led.state = Led.OFF
-
-
-
 
 if __name__ == '__main__':
     record_journal_entry()
